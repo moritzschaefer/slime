@@ -2,8 +2,11 @@
 
 import base64
 import json
+import os
+import tempfile
 
 import torch
+import torch.nn as nn
 
 from slime.utils.processing_utils import encode_transcriptome_for_rollout_engine, process_transcriptome_info
 from slime.utils.transcriptome import TranscriptomeEncoder
@@ -108,7 +111,7 @@ def test_encode_transcriptome_numpy():
 
 
 # ---------------------------------------------------------------------------
-# TranscriptomeEncoder
+# TranscriptomeEncoder – basic
 # ---------------------------------------------------------------------------
 def test_transcriptome_encoder_output_shape():
     """Encoder should produce (batch, num_tokens, llm_hidden_dim)."""
@@ -135,3 +138,66 @@ def test_transcriptome_encoder_gradient_flow():
     loss.backward()
     for p in encoder.parameters():
         assert p.grad is not None
+
+
+# ---------------------------------------------------------------------------
+# TranscriptomeEncoder – custom foundation model
+# ---------------------------------------------------------------------------
+def test_transcriptome_encoder_custom_foundation_model():
+    """Users should be able to pass their own nn.Module as foundation model."""
+
+    class MyFoundation(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.linear = nn.Linear(300, 64)
+
+        def forward(self, x):
+            return self.linear(x)
+
+    custom = MyFoundation()
+    encoder = TranscriptomeEncoder(foundation_model=custom, foundation_dim=64, llm_hidden_dim=128)
+    x = torch.randn(2, 300)
+    out = encoder(x)
+    assert out.shape == (2, 1, 128)
+    # Foundation model parameters should be part of encoder
+    assert any(p.data_ptr() == custom.linear.weight.data_ptr() for p in encoder.parameters())
+
+
+def test_transcriptome_encoder_custom_foundation_gradient():
+    """Gradients should flow through a custom foundation model."""
+
+    class TinyModel(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.fc = nn.Linear(50, 32)
+
+        def forward(self, x):
+            return self.fc(x)
+
+    fm = TinyModel()
+    encoder = TranscriptomeEncoder(foundation_model=fm, foundation_dim=32, llm_hidden_dim=64)
+    x = torch.randn(4, 50)
+    loss = encoder(x).sum()
+    loss.backward()
+    assert fm.fc.weight.grad is not None
+
+
+# ---------------------------------------------------------------------------
+# TranscriptomeEncoder – save / load
+# ---------------------------------------------------------------------------
+def test_transcriptome_encoder_save_load_roundtrip():
+    """save_pretrained → from_pretrained should restore identical weights."""
+    encoder = TranscriptomeEncoder(input_dim=100, foundation_dim=32, llm_hidden_dim=64, num_tokens=2)
+    x = torch.randn(2, 100)
+    original_out = encoder(x)
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        path = os.path.join(tmpdir, "encoder.pt")
+        encoder.save_pretrained(path)
+
+        loaded = TranscriptomeEncoder.from_pretrained(
+            path, input_dim=100, foundation_dim=32, llm_hidden_dim=64, num_tokens=2
+        )
+
+    loaded_out = loaded(x)
+    assert torch.allclose(original_out, loaded_out)
