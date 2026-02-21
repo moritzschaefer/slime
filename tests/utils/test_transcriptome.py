@@ -111,7 +111,7 @@ def test_encode_transcriptome_numpy():
 
 
 # ---------------------------------------------------------------------------
-# TranscriptomeEncoder – basic
+# TranscriptomeEncoder - basic
 # ---------------------------------------------------------------------------
 def test_transcriptome_encoder_output_shape():
     """Encoder should produce (batch, num_tokens, llm_hidden_dim)."""
@@ -141,7 +141,7 @@ def test_transcriptome_encoder_gradient_flow():
 
 
 # ---------------------------------------------------------------------------
-# TranscriptomeEncoder – custom foundation model
+# TranscriptomeEncoder - custom foundation model
 # ---------------------------------------------------------------------------
 def test_transcriptome_encoder_custom_foundation_model():
     """Users should be able to pass their own nn.Module as foundation model."""
@@ -183,7 +183,7 @@ def test_transcriptome_encoder_custom_foundation_gradient():
 
 
 # ---------------------------------------------------------------------------
-# TranscriptomeEncoder – save / load
+# TranscriptomeEncoder - save / load
 # ---------------------------------------------------------------------------
 def test_transcriptome_encoder_save_load_roundtrip():
     """save_pretrained → from_pretrained should restore identical weights."""
