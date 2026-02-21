@@ -12,7 +12,7 @@ import torch.nn as nn
 
 
 class TranscriptomeEncoder(nn.Module):
-    """Encode 20 000-dimensional transcriptome vectors into the LLM token
+    """Encode 20,000-dimensional transcriptome vectors into the LLM token
     embedding space.
 
     The pipeline mirrors the vision-encoder + adapter pattern used in
@@ -26,7 +26,7 @@ class TranscriptomeEncoder(nn.Module):
     Parameters
     ----------
     input_dim : int
-        Dimensionality of raw gene-expression vectors (default 20 000).
+        Dimensionality of raw gene-expression vectors (default 20,000).
     foundation_dim : int
         Output dimension of the cell foundation model backbone.
     llm_hidden_dim : int
