@@ -74,3 +74,58 @@ def encode_image_for_rollout_engine(image) -> str:
     image.save(buffer, format="PNG")
     image_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
     return f"data:image/png;base64,{image_base64}"
+
+
+def process_transcriptome_info(prompt) -> dict:
+    """Extract transcriptome vectors from conversation messages.
+
+    Mirrors :func:`process_vision_info` but for transcriptome (gene-expression)
+    data embedded in the conversation content.
+
+    Parameters
+    ----------
+    prompt : list[dict]
+        Conversation messages where some content items have ``type == "transcriptome"``.
+
+    Returns
+    -------
+    dict
+        ``{"transcriptomes": list[list[float]]}`` with all extracted vectors.
+    """
+    import numpy as np
+
+    transcriptomes: list = []
+    for message in prompt:
+        content = message.get("content")
+        if isinstance(content, list):
+            for item in content:
+                if isinstance(item, dict) and item.get("type") == "transcriptome":
+                    vec = item["transcriptome"]
+                    if isinstance(vec, np.ndarray):
+                        vec = vec.tolist()
+                    transcriptomes.append(vec)
+    return {"transcriptomes": transcriptomes}
+
+
+def encode_transcriptome_for_rollout_engine(vector) -> str:
+    """Encode a transcriptome vector as a base64 JSON string for server transmission.
+
+    Parameters
+    ----------
+    vector : list[float] | numpy.ndarray
+        Raw gene-expression vector.
+
+    Returns
+    -------
+    str
+        Base64-encoded JSON representation prefixed with a data-URI scheme.
+    """
+    import json
+
+    import numpy as np
+
+    if isinstance(vector, np.ndarray):
+        vector = vector.tolist()
+    payload = json.dumps(vector)
+    encoded = base64.b64encode(payload.encode("utf-8")).decode("utf-8")
+    return f"data:application/json;base64,{encoded}"

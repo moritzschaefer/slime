@@ -127,6 +127,15 @@ async def generate(args: Namespace, sample: Sample, sampling_params: dict[str, A
     else:
         prompt_ids = state.tokenizer.encode(sample.prompt, add_special_tokens=False)
 
+    # Prepare transcriptome tensors for training
+    if sample.multimodal_inputs and sample.multimodal_inputs.get("transcriptomes"):
+        import torch
+
+        transcriptome_tensor = torch.tensor(sample.multimodal_inputs["transcriptomes"], dtype=torch.float32)
+        if sample.multimodal_train_inputs is None:
+            sample.multimodal_train_inputs = {}
+        sample.multimodal_train_inputs["transcriptome_values"] = transcriptome_tensor
+
     if len(sample.response) > 0:
         sampling_params["max_new_tokens"] -= len(sample.tokens) - len(prompt_ids)
 
@@ -146,9 +155,16 @@ async def generate(args: Namespace, sample: Sample, sampling_params: dict[str, A
     if args.use_rollout_routing_replay:
         payload["return_routed_experts"] = True
 
-    if sample.multimodal_inputs and sample.multimodal_inputs["images"]:
+    if sample.multimodal_inputs and sample.multimodal_inputs.get("images"):
         image_data = sample.multimodal_inputs["images"]
         payload["image_data"] = [encode_image_for_rollout_engine(image) for image in image_data]
+
+    if sample.multimodal_inputs and sample.multimodal_inputs.get("transcriptomes"):
+        from slime.utils.processing_utils import encode_transcriptome_for_rollout_engine
+
+        payload["transcriptome_data"] = [
+            encode_transcriptome_for_rollout_engine(vec) for vec in sample.multimodal_inputs["transcriptomes"]
+        ]
 
     # Use existing tokens for multi-turn or tokenize the new prompt
     if len(sample.response) > 0:
