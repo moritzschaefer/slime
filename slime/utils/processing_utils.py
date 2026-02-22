@@ -77,10 +77,10 @@ def encode_image_for_rollout_engine(image) -> str:
 
 
 def process_transcriptome_info(prompt) -> dict:
-    """Extract transcriptome vectors from conversation messages.
+    """Extract pre-computed transcriptome embeddings from conversation messages.
 
-    Mirrors :func:`process_vision_info` but for transcriptome (gene-expression)
-    data embedded in the conversation content.
+    Mirrors :func:`process_vision_info` but for transcriptome embeddings
+    (e.g. from Geneformer) embedded in the conversation content.
 
     Parameters
     ----------
@@ -90,11 +90,11 @@ def process_transcriptome_info(prompt) -> dict:
     Returns
     -------
     dict
-        ``{"transcriptomes": list[list[float]]}`` with all extracted vectors.
+        ``{"transcriptome_embeddings": list}`` with all extracted embedding vectors.
     """
     import numpy as np
 
-    transcriptomes: list = []
+    embeddings: list = []
     for message in prompt:
         content = message.get("content")
         if isinstance(content, list):
@@ -103,29 +103,5 @@ def process_transcriptome_info(prompt) -> dict:
                     vec = item["transcriptome"]
                     if isinstance(vec, np.ndarray):
                         vec = vec.tolist()
-                    transcriptomes.append(vec)
-    return {"transcriptomes": transcriptomes}
-
-
-def encode_transcriptome_for_rollout_engine(vector) -> str:
-    """Encode a transcriptome vector as a base64 JSON string for server transmission.
-
-    Parameters
-    ----------
-    vector : list[float] | numpy.ndarray
-        Raw gene-expression vector.
-
-    Returns
-    -------
-    str
-        Base64-encoded JSON representation prefixed with a data-URI scheme.
-    """
-    import json
-
-    import numpy as np
-
-    if isinstance(vector, np.ndarray):
-        vector = vector.tolist()
-    payload = json.dumps(vector)
-    encoded = base64.b64encode(payload.encode("utf-8")).decode("utf-8")
-    return f"data:application/json;base64,{encoded}"
+                    embeddings.append(vec)
+    return {"transcriptome_embeddings": embeddings}

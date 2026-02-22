@@ -7,8 +7,8 @@ This module only handles the final projection step.
 
 Typical usage
 -------------
->>> adapter = TranscriptomeAdapter(embedding_dim=512, llm_hidden_dim=4096)
->>> embeds = adapter(torch.randn(2, 512))  # (batch, num_tokens, llm_hidden_dim)
+>>> adapter = TranscriptomeAdapter(embedding_dim=1152, llm_hidden_dim=4096)
+>>> embeds = adapter(torch.randn(2, 1152))  # (batch, num_tokens, llm_hidden_dim)
 """
 
 import logging
@@ -28,7 +28,7 @@ class TranscriptomeAdapter(nn.Module):
     ----------
     embedding_dim : int
         Dimensionality of the pre-computed embeddings coming from the cell
-        foundation model.
+        foundation model (default 1152, matching Geneformer V2).
     llm_hidden_dim : int
         Hidden dimension of the target LLM.
     num_tokens : int
@@ -37,7 +37,7 @@ class TranscriptomeAdapter(nn.Module):
 
     def __init__(
         self,
-        embedding_dim: int = 512,
+        embedding_dim: int = 1152,
         llm_hidden_dim: int = 4096,
         num_tokens: int = 1,
     ):

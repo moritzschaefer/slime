@@ -3,7 +3,7 @@ import logging
 import torch
 
 from slime.utils.mask_utils import MultiTurnLossMaskGenerator
-from slime.utils.processing_utils import load_processor, load_tokenizer, process_transcriptome_info
+from slime.utils.processing_utils import load_processor, load_tokenizer
 
 __all__ = ["generate_rollout"]
 
@@ -61,9 +61,11 @@ def generate_rollout(args, rollout_id, data_buffer, evaluation=False):
         else:
             token_ids, loss_mask = MASK_GENERATOR.get_loss_mask(messages, tools=tools)
 
-        # Prepare transcriptome tensors for training
-        if sample.multimodal_inputs and sample.multimodal_inputs.get("transcriptomes"):
-            transcriptome_tensor = torch.tensor(sample.multimodal_inputs["transcriptomes"], dtype=torch.float32)
+        # Pass pre-computed transcriptome embeddings as training tensors
+        if sample.multimodal_inputs and sample.multimodal_inputs.get("transcriptome_embeddings"):
+            transcriptome_tensor = torch.tensor(
+                sample.multimodal_inputs["transcriptome_embeddings"], dtype=torch.float32
+            )
             if sample.multimodal_train_inputs is None:
                 sample.multimodal_train_inputs = {}
             sample.multimodal_train_inputs["transcriptome_values"] = transcriptome_tensor
