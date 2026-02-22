@@ -1,7 +1,5 @@
 import logging
 
-import torch
-
 from slime.utils.mask_utils import MultiTurnLossMaskGenerator
 from slime.utils.processing_utils import load_processor, load_tokenizer
 
@@ -48,27 +46,7 @@ def generate_rollout(args, rollout_id, data_buffer, evaluation=False):
         messages = sample.prompt
         tools = sample.metadata.get("tools", None)
 
-        if PROCESSOR and sample.multimodal_inputs:
-            from slime.utils.processing_utils import build_processor_kwargs
-
-            processor_kwargs = build_processor_kwargs(sample.multimodal_inputs)
-            processor_output = PROCESSOR(text=messages, **processor_kwargs)
-            token_ids = processor_output["input_ids"][0]
-            mm_train = {k: v for k, v in processor_output.items() if k not in ["input_ids", "attention_mask"]} or None
-            if mm_train:
-                sample.multimodal_train_inputs = mm_train
-            _, loss_mask = MASK_GENERATOR.get_loss_mask_with_multimodal_alignment(messages, token_ids, tools=tools)
-        else:
-            token_ids, loss_mask = MASK_GENERATOR.get_loss_mask(messages, tools=tools)
-
-        # Pass pre-computed transcriptome embeddings as training tensors
-        if sample.multimodal_inputs and sample.multimodal_inputs.get("transcriptome_embeddings"):
-            transcriptome_tensor = torch.tensor(
-                sample.multimodal_inputs["transcriptome_embeddings"], dtype=torch.float32
-            )
-            if sample.multimodal_train_inputs is None:
-                sample.multimodal_train_inputs = {}
-            sample.multimodal_train_inputs["transcriptome_values"] = transcriptome_tensor
+        token_ids, loss_mask = MASK_GENERATOR.get_loss_mask(messages, tools=tools)
 
         response_length = MASK_GENERATOR.get_response_lengths([loss_mask])[0]
 

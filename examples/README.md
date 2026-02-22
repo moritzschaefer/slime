@@ -19,4 +19,3 @@ These examples provide concrete examples to leverage slime in your own RL workfl
 - **[train_infer_mismatch_helper](./train_infer_mismatch_helper)**: Algorithmic methods for rollout correction (e.g., TIS, MIS).
 - **[true_on_policy](./true_on_policy)**: Ensures strictly equal log probabilities between inference (SGLang) and training engines.
 - **[true_on_policy_vlm](./true_on_policy_vlm)**: "True On-Policy" training demonstration for VLM (Qwen3-VL).
-- **[transcriptome_sft](./transcriptome_sft)**: SFT of reasoning models (QwQ-32B, Qwen3) on transcriptome data with pre-computed cell foundation model embeddings.

@@ -74,34 +74,3 @@ def encode_image_for_rollout_engine(image) -> str:
     image.save(buffer, format="PNG")
     image_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
     return f"data:image/png;base64,{image_base64}"
-
-
-def process_transcriptome_info(prompt) -> dict:
-    """Extract pre-computed transcriptome embeddings from conversation messages.
-
-    Mirrors :func:`process_vision_info` but for transcriptome embeddings
-    (e.g. from Geneformer) embedded in the conversation content.
-
-    Parameters
-    ----------
-    prompt : list[dict]
-        Conversation messages where some content items have ``type == "transcriptome"``.
-
-    Returns
-    -------
-    dict
-        ``{"transcriptome_embeddings": list}`` with all extracted embedding vectors.
-    """
-    import numpy as np
-
-    embeddings: list = []
-    for message in prompt:
-        content = message.get("content")
-        if isinstance(content, list):
-            for item in content:
-                if isinstance(item, dict) and item.get("type") == "transcriptome":
-                    vec = item["transcriptome"]
-                    if isinstance(vec, np.ndarray):
-                        vec = vec.tolist()
-                    embeddings.append(vec)
-    return {"transcriptome_embeddings": embeddings}
