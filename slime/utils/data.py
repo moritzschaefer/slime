@@ -232,6 +232,19 @@ class Dataset:
             else:
                 multimodal_inputs = None
 
+            # Extract transcriptome embeddings if present in multimodal_keys
+            if multimodal_keys and "transcriptome" in multimodal_keys:
+                from slime.utils.processing_utils import process_transcriptome_info
+
+                assert isinstance(
+                    prompt, list
+                ), f"prompt must be a list when transcriptome data is used, got {type(prompt)} instead"
+                transcriptome_inputs = process_transcriptome_info(prompt)
+                if transcriptome_inputs.get("transcriptome_embeddings"):
+                    if multimodal_inputs is None:
+                        multimodal_inputs = {}
+                    multimodal_inputs.update(transcriptome_inputs)
+
             origin_samples.append(
                 Sample(
                     prompt=output_prompt,

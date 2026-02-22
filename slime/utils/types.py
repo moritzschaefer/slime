@@ -200,10 +200,11 @@ class MultimodalTypes:
     IMAGE = MultimodalType(name="image", placeholder="<image>")
     VIDEO = MultimodalType(name="video", placeholder="<video>")
     AUDIO = MultimodalType(name="audio", placeholder="<audio>")
+    TRANSCRIPTOME = MultimodalType(name="transcriptome", placeholder="<transcriptome>")
 
     @classmethod
     def all(cls) -> list[MultimodalType]:
-        return [cls.IMAGE, cls.VIDEO, cls.AUDIO]
+        return [cls.IMAGE, cls.VIDEO, cls.AUDIO, cls.TRANSCRIPTOME]
 
     @classmethod
     def get(cls, name: str) -> MultimodalType | None:
