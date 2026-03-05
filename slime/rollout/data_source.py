@@ -60,6 +60,9 @@ class RolloutDataSource(DataSource):
 
         if args.rollout_global_dataset:
             tokenizer = load_tokenizer(args.hf_checkpoint, trust_remote_code=True)
+            # If using transcriptome adapter, add <transcriptome> as a special token
+            if getattr(args, "transcriptome_embeddings_key", None):
+                tokenizer.add_special_tokens({"additional_special_tokens": ["<transcriptome>"]})
             processor = load_processor(args.hf_checkpoint, trust_remote_code=True)
 
             # TODO move (during the refactor)
@@ -78,6 +81,7 @@ class RolloutDataSource(DataSource):
                 label_key=args.label_key,
                 metadata_key=args.metadata_key,
                 tool_key=args.tool_key,
+                transcriptome_embeddings_key=getattr(args, "transcriptome_embeddings_key", None),
                 apply_chat_template=args.apply_chat_template,
                 apply_chat_template_kwargs=args.apply_chat_template_kwargs,
                 seed=args.rollout_seed,

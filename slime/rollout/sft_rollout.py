@@ -34,6 +34,10 @@ def generate_rollout(args, rollout_id, data_buffer, evaluation=False):
     global TOKENIZER, PROCESSOR, MASK_GENERATOR, SAMPLE_PRINTED
     if TOKENIZER is None:
         TOKENIZER = load_tokenizer(args.hf_checkpoint, trust_remote_code=True)
+        # If using transcriptome adapter, add <transcriptome> as a special token
+        # so it tokenizes to a single stable ID (BPE is context-dependent).
+        if getattr(args, "transcriptome_embeddings_key", None):
+            TOKENIZER.add_special_tokens({"additional_special_tokens": ["<transcriptome>"]})
 
     if PROCESSOR is None:
         PROCESSOR = load_processor(args.hf_checkpoint, trust_remote_code=True)

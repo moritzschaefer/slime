@@ -190,6 +190,7 @@ class Dataset:
         label_key=None,
         tool_key=None,
         metadata_key="metadata",
+        transcriptome_embeddings_key=None,
         seed=42,
         apply_chat_template=False,
         apply_chat_template_kwargs=None,
@@ -197,7 +198,7 @@ class Dataset:
         origin_samples = []
         for data in read_file(path):
             # Both chat templates and multimodal inputs require conversation format (list of message dicts)
-            as_conversation = apply_chat_template or (multimodal_keys is not None)
+            as_conversation = apply_chat_template or (multimodal_keys is not None) or (transcriptome_embeddings_key is not None)
             prompt = _build_messages(data, prompt_key, as_conversation, multimodal_keys)
 
             metadata = data.get(metadata_key) or {}
@@ -244,6 +245,16 @@ class Dataset:
                     if multimodal_inputs is None:
                         multimodal_inputs = {}
                     multimodal_inputs.update(transcriptome_inputs)
+
+            # Read pre-computed transcriptome embeddings directly from data dict.
+            # This keeps <transcriptome> as literal text in messages (no structured
+            # content items), so chat templates and tokenization work normally.
+            if transcriptome_embeddings_key and transcriptome_embeddings_key in data:
+                embeddings = data[transcriptome_embeddings_key]
+                if embeddings:
+                    if multimodal_inputs is None:
+                        multimodal_inputs = {}
+                    multimodal_inputs["transcriptome_embeddings"] = embeddings
 
             origin_samples.append(
                 Sample(

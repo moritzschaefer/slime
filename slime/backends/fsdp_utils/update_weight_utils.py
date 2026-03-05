@@ -47,7 +47,21 @@ class UpdateWeight(abc.ABC):
         self.weight_version += 1
         bucket = []
         bucket_size = 0
+
+        # If the model has a rollout_name_map, use it to remap and filter
+        # parameter names for the rollout engine (e.g. strip wrapper prefix,
+        # skip adapter-only params that the rollout engine doesn't have).
+        name_map = None
+        if hasattr(self.model, "rollout_name_map"):
+            name_map = self.model.rollout_name_map()
+
         for name, param in self.model.state_dict().items():
+            # Apply name remapping if available
+            if name_map is not None:
+                if name not in name_map:
+                    continue  # skip params not in map (e.g. adapter params)
+                name = name_map[name]
+
             param_size = param.numel() * param.element_size()
             if bucket and bucket_size + param_size >= self.args.update_weight_buffer_size:
                 self.wait_and_update_bucket_weights(bucket)

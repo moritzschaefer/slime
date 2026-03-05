@@ -45,6 +45,12 @@ class GenerateState(metaclass=SingletonMeta):
         # persistent state for the generation process
         self.args = args
         self.tokenizer = load_tokenizer(args.hf_checkpoint, trust_remote_code=True)
+        # Add <transcriptome> as a special token so it encodes to a single ID
+        # (consistent with the training-side tokenizer).
+        if getattr(args, "transcriptome_embeddings_key", None):
+            self.tokenizer.add_special_tokens(
+                {"additional_special_tokens": ["<transcriptome>"]}
+            )
         self.processor = load_processor(args.hf_checkpoint, trust_remote_code=True)
 
         self.semaphore = asyncio.Semaphore(
@@ -160,6 +166,16 @@ async def generate(args: Namespace, sample: Sample, sampling_params: dict[str, A
     if sample.multimodal_inputs and sample.multimodal_inputs.get("images"):
         image_data = sample.multimodal_inputs["images"]
         payload["image_data"] = [encode_image_for_rollout_engine(image) for image in image_data]
+
+    # Pass transcriptome embeddings to SGLang as precomputed_embedding image_data
+    if sample.multimodal_inputs and sample.multimodal_inputs.get("transcriptome_embeddings"):
+        emb = sample.multimodal_inputs["transcriptome_embeddings"]
+        # Serialize as list of floats for JSON transport
+        if hasattr(emb, "tolist"):
+            emb_list = emb.tolist()
+        else:
+            emb_list = list(emb)
+        payload["image_data"] = [{"format": "precomputed_embedding", "feature": emb_list}]
 
     # Use existing tokens for multi-turn or tokenize the new prompt
     if len(sample.response) > 0:
@@ -482,6 +498,10 @@ async def eval_rollout_single_dataset(
     cache_key = dataset_cfg.cache_key + (args.hf_checkpoint, args.apply_chat_template)
     if cache_key not in EVAL_PROMPT_DATASET:
         tokenizer = load_tokenizer(args.hf_checkpoint, trust_remote_code=True)
+        if getattr(args, "transcriptome_embeddings_key", None):
+            tokenizer.add_special_tokens(
+                {"additional_special_tokens": ["<transcriptome>"]}
+            )
         processor = load_processor(args.hf_checkpoint, trust_remote_code=True)
         EVAL_PROMPT_DATASET[cache_key] = Dataset(
             path=dataset_cfg.path,
@@ -493,6 +513,7 @@ async def eval_rollout_single_dataset(
             multimodal_keys=args.multimodal_keys,
             metadata_key=dataset_cfg.metadata_key,
             tool_key=dataset_cfg.tool_key,
+            transcriptome_embeddings_key=getattr(args, "transcriptome_embeddings_key", None),
             apply_chat_template=args.apply_chat_template,
             apply_chat_template_kwargs=args.apply_chat_template_kwargs,
         )

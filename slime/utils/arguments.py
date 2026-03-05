@@ -7,8 +7,6 @@ from typing import Any
 import yaml
 from sglang_router.launch_router import RouterArgs
 
-from slime.backends.sglang_utils.arguments import sglang_parse_args
-from slime.backends.sglang_utils.arguments import validate_args as sglang_validate_args
 from slime.utils.eval_config import EvalDatasetConfig, build_eval_dataset_configs, ensure_dataset_list
 from slime.utils.logging_utils import configure_logger
 
@@ -157,6 +155,29 @@ def get_slime_extra_args_provider(add_custom_arguments=None):
                     "The function should have the signature "
                     "`def custom_model_provider(pre_process: bool, post_process: bool, vp_stage: int | None = None) -> GPTModel`. "
                     "Example: 'my_module.my_model_provider'."
+                ),
+            )
+            parser.add_argument(
+                "--custom-model-wrapper-path",
+                type=str,
+                default=None,
+                help=(
+                    "Path to a function that wraps the loaded HF model (FSDP backend). "
+                    "Called after from_pretrained, before FSDP wrapping. "
+                    "Signature: `def wrap_model(model, args) -> nn.Module`. "
+                    "Example: 'training.model.wrap_with_transcriptome_adapter'."
+                ),
+            )
+            parser.add_argument(
+                "--transcriptome-embeddings-key",
+                type=str,
+                default=None,
+                help=(
+                    "Key in the JSONL data dict that holds pre-computed transcriptome "
+                    "embeddings (list of float vectors). When set, embeddings are read "
+                    "directly from the data — <transcriptome> placeholder stays as "
+                    "literal text in messages for tokenization. "
+                    "Example: 'transcriptome_embeddings'."
                 ),
             )
             parser.add_argument(
@@ -1445,7 +1466,7 @@ def _pre_parse_mode():
     registering them twice.  The returned namespace is merged into
     the final ``args`` after Phase 2 parsing.
     """
-    temp_parser = argparse.ArgumentParser(add_help=False)
+    temp_parser = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
     temp_parser.add_argument("--train-backend", type=str, choices=["megatron", "fsdp"], default="megatron")
     temp_parser.add_argument("--debug-rollout-only", action="store_true", default=False)
     temp_parser.add_argument("--debug-train-only", action="store_true", default=False)
@@ -1467,6 +1488,8 @@ def parse_args(add_custom_arguments=None):
     # Skipped when sglang servers are not needed.
     sglang_ns = None
     if not skip_sglang:
+        from slime.backends.sglang_utils.arguments import sglang_parse_args
+
         sglang_ns = sglang_parse_args()
 
     # Phase 2: Parse megatron/fsdp + slime args.
@@ -1504,6 +1527,8 @@ def parse_args(add_custom_arguments=None):
         megatron_validate_args(args)
 
     if not args.debug_train_only:
+        from slime.backends.sglang_utils.arguments import validate_args as sglang_validate_args
+
         sglang_validate_args(args)
 
     return args

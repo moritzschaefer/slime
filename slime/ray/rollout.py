@@ -11,9 +11,6 @@ import numpy as np
 import ray
 import torch
 from ray.util.scheduling_strategies import PlacementGroupSchedulingStrategy
-from sglang.srt.constants import GPU_MEMORY_TYPE_CUDA_GRAPH, GPU_MEMORY_TYPE_KV_CACHE, GPU_MEMORY_TYPE_WEIGHTS
-
-from slime.backends.sglang_utils.sglang_engine import SGLangEngine
 from slime.rollout.base_types import call_rollout_fn
 from slime.utils import logging_utils
 from slime.utils.health_monitor import RolloutHealthMonitor
@@ -179,9 +176,13 @@ class RolloutManager:
         )
 
     def onload_weights(self):
+        from sglang.srt.constants import GPU_MEMORY_TYPE_WEIGHTS
+
         self.onload(tags=[GPU_MEMORY_TYPE_WEIGHTS])
 
     def onload_kv(self):
+        from sglang.srt.constants import GPU_MEMORY_TYPE_CUDA_GRAPH, GPU_MEMORY_TYPE_KV_CACHE
+
         self.onload(tags=[GPU_MEMORY_TYPE_KV_CACHE, GPU_MEMORY_TYPE_CUDA_GRAPH])
 
     def recover_rollout_engines(self):
@@ -195,6 +196,8 @@ class RolloutManager:
         logger.info(f"Recovered {self.num_new_engines} dead rollout engines")
         assert self.num_new_engines == len(dead_indices), "num_new_engines does not match dead_indices length"
         if self.args.offload_rollout and dead_indices:
+            from sglang.srt.constants import GPU_MEMORY_TYPE_WEIGHTS
+
             new_engines = [self.all_rollout_engines[i] for i in dead_indices]
             ray.get([engine.release_memory_occupation.remote() for engine in new_engines])
             ray.get([engine.resume_memory_occupation.remote(tags=[GPU_MEMORY_TYPE_WEIGHTS]) for engine in new_engines])
@@ -469,6 +472,8 @@ def init_rollout_engines(args, pg, all_rollout_engines):
         ), f"num_engines {num_engines} should be larger than prefill_num_servers {prefill_num_servers}"
 
     pg, reordered_bundle_indices, reordered_gpu_ids = pg
+
+    from slime.backends.sglang_utils.sglang_engine import SGLangEngine
 
     RolloutRayActor = ray.remote(SGLangEngine)
 
